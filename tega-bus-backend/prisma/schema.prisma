@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Role {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFFLINE
+}
+
+enum BusStatus {
+  ACTIVE
+  INACTIVE
+  ON_TRIP
+  MAINTENANCE
+}
+
+enum TripStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  password  String
+  role      Role     @default(PASSENGER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  driver Driver?
+
+  @@map("users")
+}
+
+model Driver {
+  id           String       @id @default(cuid())
+  userId       String       @unique
+  driverNumber String       @unique
+  licenseNumber String      @unique
+  status       DriverStatus @default(AVAILABLE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buses Bus[]
+  trips Trip[]
+
+  @@map("drivers")
+}
+
+model Route {
+  id                String   @id @default(cuid())
+  name              String
+  startLocation     String
+  destination       String
+  fare              Float
+  estimatedDuration Int      // in minutes
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  buses Bus[]
+  stops BusStop[]
+  trips Trip[]
+
+  @@map("routes")
+}
+
+model BusStop {
+  id        String   @id @default(cuid())
+  name      String
+  latitude  Float
+  longitude Float
+  order     Int
+  routeId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  route Route @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@map("bus_stops")
+}
+
+model Bus {
+  id          String    @id @default(cuid())
+  busNumber   String    @unique
+  plateNumber String    @unique
+  capacity    Int
+  status      BusStatus @default(ACTIVE)
+  driverId    String?
+  routeId     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  driver    Driver?      @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  route     Route?       @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  trips     Trip[]
+  locations BusLocation[]
+
+  @@map("buses")
+}
+
+model Trip {
+  id        String     @id @default(cuid())
+  busId     String
+  driverId  String
+  routeId   String
+  status    TripStatus @default(SCHEDULED)
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  bus    Bus    @relation(fields: [busId], references: [id])
+  driver Driver @relation(fields: [driverId], references: [id])
+  route  Route  @relation(fields: [routeId], references: [id])
+
+  @@map("trips")
+}
+
+model BusLocation {
+  id        String   @id @default(cuid())
+  busId     String
+  latitude  Float
+  longitude Float
+  speed     Float    @default(0)
+  heading   Float    @default(0)
+  timestamp DateTime @default(now())
+
+  bus Bus @relation(fields: [busId], references: [id], onDelete: Cascade)
+
+  @@map("bus_locations")
+}

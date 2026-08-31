@@ -1,0 +1,19 @@
+import { Router } from 'express';
+import * as stopController from '../controllers/stop.controller';
+import { authenticate } from '../middleware/auth.middleware';
+import { authorizeRoles } from '../middleware/role.middleware';
+
+const router = Router();
+
+router.use(authenticate);
+
+// Public (any authenticated user)
+router.get('/', stopController.getAllStops);
+router.get('/:id', stopController.getStopById);
+
+// Admin only
+router.post('/', authorizeRoles('ADMIN'), stopController.createStop);
+router.put('/:id', authorizeRoles('ADMIN'), stopController.updateStop);
+router.delete('/:id', authorizeRoles('ADMIN'), stopController.deleteStop);
+
+export default router;
