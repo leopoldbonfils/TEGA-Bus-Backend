@@ -25,10 +25,10 @@ async function main(): Promise<void> {
     await Promise.all([
       prisma.user.create({
         data: {
-          name: 'Admin TEGA',
-          email: 'admin@tegabus.com',
+          name: 'MUGISHA Leopold',
+          email: 'leopordbonfils@gmail.com',
           phone: '+250788000001',
-          password: await hashPw('Admin123!'),
+          password: await hashPw('5Rwandan'),
           role: Role.ADMIN,
         },
       }),
