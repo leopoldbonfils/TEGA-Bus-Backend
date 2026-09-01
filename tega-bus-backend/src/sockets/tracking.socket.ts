@@ -11,7 +11,7 @@ export const registerTrackingHandlers = (io: IOServer): void => {
       socket.emit('track:bus:ack', { busId, message: 'Now tracking bus' });
     });
 
-    // Passenger stops tracking a bus
+    // Passenger stop tracking a bus
     socket.on('untrack:bus', (busId: string) => {
       socket.leave(`bus:${busId}`);
       console.log(`🚪 Client ${socket.id} stopped tracking bus ${busId}`);
