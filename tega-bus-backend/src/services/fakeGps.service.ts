@@ -617,6 +617,54 @@ class FakeGpsService {
   }
 
   /**
+   * Sync active simulations & route geometries to a newly connected socket
+   */
+  syncToSocket(socket: { emit: (event: string, data: any) => void }): void {
+    for (const sim of this.simulations.values()) {
+      if (sim.status === 'RUNNING' || sim.status === 'PAUSED') {
+        const coords = sim.waypoints;
+        socket.emit('bus:route:geometry', {
+          busId: sim.busId,
+          busNumber: sim.busNumber,
+          routeId: sim.routeId,
+          routeNumber: sim.routeNumber,
+          routeColor: sim.routeColor,
+          coordinates: coords.map((c) => [c.latitude, c.longitude] as [number, number]),
+          stops: sim.stops.map((s) => ({
+            name: s.name,
+            latitude: s.latitude,
+            longitude: s.longitude,
+            order: s.order,
+          })),
+        });
+
+        socket.emit('bus:location', {
+          busId: sim.busId,
+          busNumber: sim.busNumber,
+          routeId: sim.routeId,
+          routeNumber: sim.routeNumber,
+          routeColor: sim.routeColor,
+          latitude: sim.currentPosition.latitude,
+          longitude: sim.currentPosition.longitude,
+          speed: sim.speed,
+          heading: sim.heading,
+          currentStop: sim.currentStop,
+          nextStop: sim.nextStop,
+          distanceKm: sim.distanceToNextStopKm,
+          distanceToNextStopKm: sim.distanceToNextStopKm,
+          etaMinutes: sim.etaMinutes,
+          progress: sim.progress,
+          tripProgress: sim.progress,
+          isDestinationReached: sim.isDestinationReached,
+          simulationStatus: sim.status,
+          speedMultiplier: sim.speedMultiplier,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+  }
+
+  /**
    * Save location to PostgreSQL
    */
   private async persistLocation(sim: SimulationState): Promise<void> {

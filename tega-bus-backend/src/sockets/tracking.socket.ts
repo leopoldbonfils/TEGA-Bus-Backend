@@ -1,8 +1,17 @@
 import { Server as IOServer, Socket } from 'socket.io';
+import { fakeGpsService } from '../services/fakeGps.service';
 
 export const registerTrackingHandlers = (io: IOServer): void => {
   io.on('connection', (socket: Socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
+
+    // Immediately sync all active bus simulations & road geometries to newly connected client
+    fakeGpsService.syncToSocket(socket);
+
+    // Client can also explicitly request a sync
+    socket.on('sync:buses', () => {
+      fakeGpsService.syncToSocket(socket);
+    });
 
     // Passenger joins a bus tracking room
     socket.on('track:bus', (busId: string) => {
