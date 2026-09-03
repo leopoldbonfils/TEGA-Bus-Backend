@@ -182,3 +182,53 @@ export const getFakeGpsStatus = async (
     sendSuccess(res, { busId, ...status });
   } catch (err) { next(err); }
 };
+
+export const startAllFakeGps = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const speedMultiplier = req.body?.speedMultiplier ? Number(req.body.speedMultiplier) : 1;
+
+    // Fetch all buses that have a route assigned
+    const buses = await prisma.bus.findMany({
+      where: { routeId: { not: null } },
+      select: { id: true, busNumber: true, routeId: true },
+    });
+
+    if (buses.length === 0) {
+      throw new AppError('No buses with assigned routes found', 400);
+    }
+
+    const results: { busId: string; busNumber: string; status: string }[] = [];
+
+    // Start simulations concurrently
+    await Promise.allSettled(
+      buses.map(async (bus) => {
+        try {
+          await fakeGpsService.start(bus.id, bus.routeId!, speedMultiplier);
+          results.push({ busId: bus.id, busNumber: bus.busNumber, status: 'STARTED' });
+        } catch (err: any) {
+          results.push({ busId: bus.id, busNumber: bus.busNumber, status: `ERROR: ${err.message}` });
+        }
+      })
+    );
+
+    sendSuccess(res, {
+      message: `Started GPS simulation for ${results.filter(r => r.status === 'STARTED').length}/${buses.length} buses`,
+      results,
+    });
+  } catch (err) { next(err); }
+};
+
+export const stopAllFakeGps = async (
+  _req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    fakeGpsService.stopAll();
+    sendSuccess(res, { message: 'Stopped all running GPS simulations' });
+  } catch (err) { next(err); }
+};

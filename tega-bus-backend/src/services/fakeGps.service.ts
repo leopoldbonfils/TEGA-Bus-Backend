@@ -607,6 +607,12 @@ class FakeGpsService {
       routeNumber: sim.routeNumber,
       routeColor: sim.routeColor,
       coordinates: coords.map((c) => [c.latitude, c.longitude] as [number, number]),
+      stops: sim.stops.map((s) => ({
+        name: s.name,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        order: s.order,
+      })),
     });
   }
 

@@ -21,5 +21,7 @@ router.post('/fake-gps/resume/:busId', adminController.resumeFakeGps);
 router.post('/fake-gps/stop/:busId', adminController.stopFakeGps);
 router.post('/fake-gps/speed/:busId', adminController.setFakeGpsSpeed);
 router.get('/fake-gps/status/:busId', adminController.getFakeGpsStatus);
+router.post('/fake-gps/start-all', adminController.startAllFakeGps);
+router.post('/fake-gps/stop-all', adminController.stopAllFakeGps);
 
 export default router;
