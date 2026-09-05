@@ -5,9 +5,12 @@ import { authorizeRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
+// Public routes (no auth required)
+router.get('/nearby', stopController.getNearbyStops);
+
 router.use(authenticate);
 
-// Public (any authenticated user)
+// Authenticated user routes
 router.get('/', stopController.getAllStops);
 router.get('/:id', stopController.getStopById);
 

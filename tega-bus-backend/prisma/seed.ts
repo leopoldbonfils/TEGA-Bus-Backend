@@ -21,271 +21,378 @@ async function main(): Promise<void> {
   // ─── Users ────────────────────────────────────
   console.log('👤 Creating users...');
 
-  const [adminUser, driverUser1, driverUser2, driverUser3, driverUser4] =
-    await Promise.all([
-      prisma.user.create({
-        data: {
-          name: 'MUGISHA Leopold',
-          email: 'leopordbonfils@gmail.com',
-          phone: '+250788000001',
-          password: await hashPw('5Rwandan'),
-          role: Role.ADMIN,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: 'Jean-Pierre Nkurunziza',
-          email: 'driver@tegabus.com',
-          phone: '+250788000002',
-          password: await hashPw('Driver123!'),
-          role: Role.DRIVER,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: 'Diane Uwamahoro',
-          email: 'driver2@tegabus.com',
-          phone: '+250788000003',
-          password: await hashPw('Driver123!'),
-          role: Role.DRIVER,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: 'Samuel Habimana',
-          email: 'driver3@tegabus.com',
-          phone: '+250788000005',
-          password: await hashPw('Driver123!'),
-          role: Role.DRIVER,
-        },
-      }),
-      prisma.user.create({
-        data: {
-          name: 'Grace Ingabire',
-          email: 'driver4@tegabus.com',
-          phone: '+250788000006',
-          password: await hashPw('Driver123!'),
-          role: Role.DRIVER,
-        },
-      }),
-    ]);
+  const adminUser = await prisma.user.create({
+    data: {
+      name: 'MUGISHA Leopold',
+      email: 'leopordbonfils@gmail.com',
+      phone: '+250788000001',
+      password: await hashPw('5Rwandan'),
+      role: Role.ADMIN,
+    },
+  });
+  const driverUser1 = await prisma.user.create({
+    data: {
+      name: 'Jean-Pierre Nkurunziza',
+      email: 'driver@tegabus.com',
+      phone: '+250788000002',
+      password: await hashPw('Driver123!'),
+      role: Role.DRIVER,
+    },
+  });
+  const driverUser2 = await prisma.user.create({
+    data: {
+      name: 'Diane Uwamahoro',
+      email: 'driver2@tegabus.com',
+      phone: '+250788000003',
+      password: await hashPw('Driver123!'),
+      role: Role.DRIVER,
+    },
+  });
+  const driverUser3 = await prisma.user.create({
+    data: {
+      name: 'Samuel Habimana',
+      email: 'driver3@tegabus.com',
+      phone: '+250788000005',
+      password: await hashPw('Driver123!'),
+      role: Role.DRIVER,
+    },
+  });
+  const driverUser4 = await prisma.user.create({
+    data: {
+      name: 'Grace Ingabire',
+      email: 'driver4@tegabus.com',
+      phone: '+250788000006',
+      password: await hashPw('Driver123!'),
+      role: Role.DRIVER,
+    },
+  });
+  const driverUser5 = await prisma.user.create({
+    data: {
+      name: 'Mucyo Christ',
+      email: 'driver5@tegabus.com',
+      phone: '+250788000007',
+      password: await hashPw('Driver123!'),
+      role: Role.DRIVER,
+    },
+  });
 
-  console.log('  ✅ Admin:', adminUser.email);
-  console.log('  ✅ Driver 1:', driverUser1.email);
-  console.log('  ✅ Driver 2:', driverUser2.email);
-  console.log('  ✅ Driver 3:', driverUser3.email);
-  console.log('  ✅ Driver 4:', driverUser4.email);
+  console.log('  ✅ Users created');
 
   // ─── Drivers ──────────────────────────────────
   console.log('\n🚗 Creating driver profiles...');
 
-  const [driver1, driver2, driver3, driver4] = await Promise.all([
-    prisma.driver.create({
-      data: {
-        userId: driverUser1.id,
-        driverNumber: 'DRV-001',
-        licenseNumber: 'LIC-RW-001',
-        status: DriverStatus.AVAILABLE,
-      },
-    }),
-    prisma.driver.create({
-      data: {
-        userId: driverUser2.id,
-        driverNumber: 'DRV-002',
-        licenseNumber: 'LIC-RW-002',
-        status: DriverStatus.AVAILABLE,
-      },
-    }),
-    prisma.driver.create({
-      data: {
-        userId: driverUser3.id,
-        driverNumber: 'DRV-003',
-        licenseNumber: 'LIC-RW-003',
-        status: DriverStatus.AVAILABLE,
-      },
-    }),
-    prisma.driver.create({
-      data: {
-        userId: driverUser4.id,
-        driverNumber: 'DRV-004',
-        licenseNumber: 'LIC-RW-004',
-        status: DriverStatus.AVAILABLE,
-      },
-    }),
-  ]);
+  const driver1 = await prisma.driver.create({
+    data: {
+      userId: driverUser1.id,
+      driverNumber: 'DRV-001',
+      licenseNumber: 'LIC-RW-001',
+      status: DriverStatus.ON_TRIP,
+    },
+  });
+  const driver2 = await prisma.driver.create({
+    data: {
+      userId: driverUser2.id,
+      driverNumber: 'DRV-002',
+      licenseNumber: 'LIC-RW-002',
+      status: DriverStatus.AVAILABLE,
+    },
+  });
+  const driver3 = await prisma.driver.create({
+    data: {
+      userId: driverUser3.id,
+      driverNumber: 'DRV-003',
+      licenseNumber: 'LIC-RW-003',
+      status: DriverStatus.AVAILABLE,
+    },
+  });
+  const driver4 = await prisma.driver.create({
+    data: {
+      userId: driverUser4.id,
+      driverNumber: 'DRV-004',
+      licenseNumber: 'LIC-RW-004',
+      status: DriverStatus.AVAILABLE,
+    },
+  });
+  const driver5 = await prisma.driver.create({
+    data: {
+      userId: driverUser5.id,
+      driverNumber: 'DRV-005',
+      licenseNumber: 'LIC-RW-005',
+      status: DriverStatus.ON_TRIP,
+    },
+  });
 
-  console.log('  ✅ Drivers:', driver1.driverNumber, driver2.driverNumber, driver3.driverNumber, driver4.driverNumber);
+  console.log('  ✅ Drivers created');
 
   // ─── Routes ───────────────────────────────────
-  // Route 101 — BLUE  — Downtown → Nyabugogo (west side of city, KG 5 Ave)
-  // Route 202 — RED   — Nyabugogo → Kimironko (northeast corridor)
-  // Route 203 — GREEN — Nyabugogo → Remera    (east corridor, direct)
-  // Route 204 — PURPLE— Kimironko → Downtown  (reverse of 101, inner ring)
   console.log('\n🗺  Creating routes...');
 
-  const [route101, route202, route203, route204] = await Promise.all([
-    prisma.route.create({
-      data: {
-        name: 'Route 101 — Downtown → Nyabugogo',
-        startLocation: 'Downtown (Kigali City)',
-        destination: 'Nyabugogo Terminal',
-        fare: 500,
-        estimatedDuration: 40,
-      },
-    }),
-    prisma.route.create({
-      data: {
-        name: 'Route 202 — Nyabugogo → Kimironko',
-        startLocation: 'Nyabugogo Terminal',
-        destination: 'Kimironko Market',
-        fare: 400,
-        estimatedDuration: 35,
-      },
-    }),
-    prisma.route.create({
-      data: {
-        name: 'Route 203 — Nyabugogo → Remera',
-        startLocation: 'Nyabugogo Terminal',
-        destination: 'Remera Bus Park',
-        fare: 300,
-        estimatedDuration: 25,
-      },
-    }),
-    prisma.route.create({
-      data: {
-        name: 'Route 204 — Kimironko → Downtown',
-        startLocation: 'Kimironko Market',
-        destination: 'Downtown (Kigali City)',
-        fare: 500,
-        estimatedDuration: 38,
-      },
-    }),
-  ]);
+  const route101 = await prisma.route.create({
+    data: {
+      name: 'Route 101 — Downtown → Nyabugogo',
+      startLocation: 'Downtown (Kigali City)',
+      destination: 'Nyabugogo Terminal',
+      fare: 500,
+      estimatedDuration: 40,
+    },
+  });
+  const route202 = await prisma.route.create({
+    data: {
+      name: 'Route 202 — Nyabugogo → Kimironko',
+      startLocation: 'Nyabugogo Terminal',
+      destination: 'Kimironko Market',
+      fare: 400,
+      estimatedDuration: 35,
+    },
+  });
+  const route203 = await prisma.route.create({
+    data: {
+      name: 'Route 203 — Nyabugogo → Remera',
+      startLocation: 'Nyabugogo Terminal',
+      destination: 'Remera Bus Park',
+      fare: 300,
+      estimatedDuration: 25,
+    },
+  });
+  const route204 = await prisma.route.create({
+    data: {
+      name: 'Route 204 — Kimironko → Downtown',
+      startLocation: 'Kimironko Market',
+      destination: 'Downtown (Kigali City)',
+      fare: 500,
+      estimatedDuration: 38,
+    },
+  });
+  const route303 = await prisma.route.create({
+    data: {
+      name: 'Route 303 — Nyabugogo → Nyacyonga',
+      startLocation: 'Nyabugogo Terminal',
+      destination: 'Nyacyonga',
+      fare: 400,
+      estimatedDuration: 30,
+    },
+  });
 
-  console.log('  ✅ Route 101:', route101.name);
-  console.log('  ✅ Route 202:', route202.name);
-  console.log('  ✅ Route 203:', route203.name);
-  console.log('  ✅ Route 204:', route204.name);
+  console.log('  ✅ Routes created');
 
   // ─── Bus Stops ────────────────────────────────
   console.log('\n🚏 Creating bus stops...');
 
-  // ── Route 101 BLUE: Downtown → Kigali City → Rwandex → Kacyiru → Nyabugogo
-  //    Western route following KG 5 Ave / NR1 toward Nyabugogo
   await prisma.busStop.createMany({
     data: [
-      { name: 'Downtown',    latitude: -1.9500, longitude: 30.0580, order: 1, routeId: route101.id },
+      { name: 'Downtown', latitude: -1.9500, longitude: 30.0580, order: 1, routeId: route101.id },
       { name: 'Kigali City', latitude: -1.9536, longitude: 30.0605, order: 2, routeId: route101.id },
-      { name: 'Rwandex',     latitude: -1.9480, longitude: 30.0500, order: 3, routeId: route101.id },
-      { name: 'Kacyiru',     latitude: -1.9405, longitude: 30.0820, order: 4, routeId: route101.id },
-      { name: 'Nyabugogo',   latitude: -1.9346, longitude: 30.0540, order: 5, routeId: route101.id },
+      { name: 'Rwandex', latitude: -1.9480, longitude: 30.0500, order: 3, routeId: route101.id },
+      { name: 'Kacyiru', latitude: -1.9405, longitude: 30.0820, order: 4, routeId: route101.id },
+      { name: 'Nyabugogo', latitude: -1.9346, longitude: 30.0540, order: 5, routeId: route101.id },
     ],
   });
 
-  // ── Route 202 RED: Nyabugogo → Kacyiru → Remera → Kimironko
-  //    Northeast corridor via KG 7 Ave then east
   await prisma.busStop.createMany({
     data: [
-      { name: 'Nyabugogo',  latitude: -1.9346, longitude: 30.0540, order: 1, routeId: route202.id },
-      { name: 'Kacyiru',    latitude: -1.9405, longitude: 30.0820, order: 2, routeId: route202.id },
-      { name: 'Remera',     latitude: -1.9502, longitude: 30.1073, order: 3, routeId: route202.id },
-      { name: 'Kimironko',  latitude: -1.9400, longitude: 30.1200, order: 4, routeId: route202.id },
+      { name: 'Nyabugogo', latitude: -1.9346, longitude: 30.0540, order: 1, routeId: route202.id },
+      { name: 'Kacyiru', latitude: -1.9405, longitude: 30.0820, order: 2, routeId: route202.id },
+      { name: 'Remera', latitude: -1.9502, longitude: 30.1073, order: 3, routeId: route202.id },
+      { name: 'Kimironko Terminus', latitude: -1.9400, longitude: 30.1200, order: 4, routeId: route202.id },
     ],
   });
 
-  // ── Route 203 GREEN: Nyabugogo → Kigali City → Remera
-  //    Direct east route via city center
   await prisma.busStop.createMany({
     data: [
-      { name: 'Nyabugogo',   latitude: -1.9346, longitude: 30.0540, order: 1, routeId: route203.id },
+      { name: 'Nyabugogo', latitude: -1.9346, longitude: 30.0540, order: 1, routeId: route203.id },
       { name: 'Kigali City', latitude: -1.9536, longitude: 30.0605, order: 2, routeId: route203.id },
-      { name: 'Gisimenti',   latitude: -1.9540, longitude: 30.1030, order: 3, routeId: route203.id },
-      { name: 'Remera',      latitude: -1.9502, longitude: 30.1073, order: 4, routeId: route203.id },
+      { name: 'Gisimenti', latitude: -1.9540, longitude: 30.1030, order: 3, routeId: route203.id },
+      { name: 'Remera', latitude: -1.9502, longitude: 30.1073, order: 4, routeId: route203.id },
     ],
   });
 
-  // ── Route 204 PURPLE: Kimironko → Gisimenti → Kigali City → Downtown
-  //    Return inner-ring route
   await prisma.busStop.createMany({
     data: [
-      { name: 'Kimironko',   latitude: -1.9400, longitude: 30.1200, order: 1, routeId: route204.id },
-      { name: 'Gisimenti',   latitude: -1.9540, longitude: 30.1030, order: 2, routeId: route204.id },
+      { name: 'Kimironko Terminus', latitude: -1.9400, longitude: 30.1200, order: 1, routeId: route204.id },
+      { name: 'Gisimenti', latitude: -1.9540, longitude: 30.1030, order: 2, routeId: route204.id },
       { name: 'Kigali City', latitude: -1.9536, longitude: 30.0605, order: 3, routeId: route204.id },
-      { name: 'Downtown',    latitude: -1.9500, longitude: 30.0580, order: 4, routeId: route204.id },
+      { name: 'Downtown', latitude: -1.9500, longitude: 30.0580, order: 4, routeId: route204.id },
     ],
   });
 
-  console.log('  ✅ Route 101 stops: 5 stops (Downtown → Nyabugogo)');
-  console.log('  ✅ Route 202 stops: 4 stops (Nyabugogo → Kimironko)');
-  console.log('  ✅ Route 203 stops: 4 stops (Nyabugogo → Remera)');
-  console.log('  ✅ Route 204 stops: 4 stops (Kimironko → Downtown)');
+  await prisma.busStop.createMany({
+    data: [
+      { name: 'Nyabugogo', latitude: -1.9346, longitude: 30.0540, order: 1, routeId: route303.id },
+      { name: 'Gatsata', latitude: -1.9160, longitude: 30.0520, order: 2, routeId: route303.id },
+      { name: 'Karuruma', latitude: -1.8900, longitude: 30.0450, order: 3, routeId: route303.id },
+      { name: 'Nyacyonga', latitude: -1.8650, longitude: 30.0380, order: 4, routeId: route303.id },
+    ],
+  });
+
+  console.log('  ✅ Bus stops created');
 
   // ─── Buses ────────────────────────────────────
   console.log('\n🚌 Creating buses...');
 
-  const [bus101, bus202, bus203, bus204] = await Promise.all([
-    prisma.bus.create({
-      data: {
-        busNumber: '101',
-        plateNumber: 'RAB 101 A',
-        capacity: 45,
-        status: BusStatus.ACTIVE,
-        driverId: driver1.id,
-        routeId: route101.id,
-      },
-    }),
-    prisma.bus.create({
-      data: {
-        busNumber: '202',
-        plateNumber: 'RAB 202 B',
-        capacity: 45,
-        status: BusStatus.ACTIVE,
-        driverId: driver2.id,
-        routeId: route202.id,
-      },
-    }),
-    prisma.bus.create({
-      data: {
-        busNumber: '203',
-        plateNumber: 'RAB 203 C',
-        capacity: 30,
-        status: BusStatus.ACTIVE,
-        driverId: driver3.id,
-        routeId: route203.id,
-      },
-    }),
-    prisma.bus.create({
-      data: {
-        busNumber: '204',
-        plateNumber: 'RAB 204 D',
-        capacity: 35,
-        status: BusStatus.ACTIVE,
-        driverId: driver4.id,
-        routeId: route204.id,
-      },
-    }),
-  ]);
+  const bus101 = await prisma.bus.create({
+    data: {
+      busNumber: '101',
+      plateNumber: 'RAB 101 A',
+      capacity: 45,
+      status: BusStatus.ON_TRIP,
+      driverId: driver1.id,
+      routeId: route101.id,
+    },
+  });
+  const bus102 = await prisma.bus.create({
+    data: {
+      busNumber: '102',
+      plateNumber: 'RAB 102 B',
+      capacity: 45,
+      status: BusStatus.ACTIVE,
+      driverId: driver2.id,
+      routeId: route101.id,
+    },
+  });
+  const bus105 = await prisma.bus.create({
+    data: {
+      busNumber: '105',
+      plateNumber: 'RAB 105 C',
+      capacity: 40,
+      status: BusStatus.ACTIVE,
+      driverId: driver3.id,
+      routeId: route204.id,
+    },
+  });
+  const bus202 = await prisma.bus.create({
+    data: {
+      busNumber: '202',
+      plateNumber: 'RAB 202 B',
+      capacity: 45,
+      status: BusStatus.ON_TRIP,
+      routeId: route202.id,
+    },
+  });
+  const bus203 = await prisma.bus.create({
+    data: {
+      busNumber: '203',
+      plateNumber: 'RAB 203 C',
+      capacity: 30,
+      status: BusStatus.ACTIVE,
+      routeId: route203.id,
+    },
+  });
+  const bus204 = await prisma.bus.create({
+    data: {
+      busNumber: '204',
+      plateNumber: 'RAB 204 D',
+      capacity: 35,
+      status: BusStatus.ACTIVE,
+      driverId: driver4.id,
+      routeId: route204.id,
+    },
+  });
+  const bus303 = await prisma.bus.create({
+    data: {
+      busNumber: '303',
+      plateNumber: 'RAD 303 A',
+      capacity: 50,
+      status: BusStatus.ON_TRIP,
+      driverId: driver5.id,
+      routeId: route303.id,
+    },
+  });
 
-  console.log('  ✅ Bus 101 → Route 101 BLUE  (Jean-Pierre Nkurunziza)');
-  console.log('  ✅ Bus 202 → Route 202 RED   (Diane Uwamahoro)');
-  console.log('  ✅ Bus 203 → Route 203 GREEN (Samuel Habimana)');
-  console.log('  ✅ Bus 204 → Route 204 PURPLE(Grace Ingabire)');
+  console.log('  ✅ Buses created');
 
-  // ─── Sample completed trip ────────────────────
-  console.log('\n📋 Creating sample completed trip...');
+  // ─── Initial Telemetry & Locations ────────────
+  console.log('\n📍 Creating initial bus locations...');
+
+  await prisma.busLocation.create({
+    data: {
+      busId: bus101.id,
+      latitude: -1.9430,
+      longitude: 30.0670,
+      speed: 28,
+      heading: 320,
+    },
+  });
+  await prisma.busLocation.create({
+    data: {
+      busId: bus102.id,
+      latitude: -1.9346,
+      longitude: 30.0540,
+      speed: 0,
+      heading: 0,
+    },
+  });
+  await prisma.busLocation.create({
+    data: {
+      busId: bus202.id,
+      latitude: -1.9380,
+      longitude: 30.0650,
+      speed: 32,
+      heading: 75,
+    },
+  });
+  await prisma.busLocation.create({
+    data: {
+      busId: bus203.id,
+      latitude: -1.9346,
+      longitude: 30.0540,
+      speed: 0,
+      heading: 0,
+    },
+  });
+  await prisma.busLocation.create({
+    data: {
+      busId: bus303.id,
+      latitude: -1.9270,
+      longitude: 30.0535,
+      speed: 30,
+      heading: 5,
+    },
+  });
+
+  console.log('  ✅ Locations created');
+
+  // ─── Active & Scheduled Trips ─────────────────
+  console.log('\n📋 Creating active & scheduled trips...');
 
   await prisma.trip.create({
     data: {
       busId: bus101.id,
       driverId: driver1.id,
       routeId: route101.id,
-      status: 'COMPLETED',
-      startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      endedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+      status: 'ACTIVE',
+      startedAt: new Date(Date.now() - 12 * 60 * 1000),
+    },
+  });
+  await prisma.trip.create({
+    data: {
+      busId: bus202.id,
+      driverId: driver2.id,
+      routeId: route202.id,
+      status: 'ACTIVE',
+      startedAt: new Date(Date.now() - 8 * 60 * 1000),
+    },
+  });
+  await prisma.trip.create({
+    data: {
+      busId: bus303.id,
+      driverId: driver5.id,
+      routeId: route303.id,
+      status: 'ACTIVE',
+      startedAt: new Date(Date.now() - 5 * 60 * 1000),
+    },
+  });
+  await prisma.trip.create({
+    data: {
+      busId: bus204.id,
+      driverId: driver4.id,
+      routeId: route204.id,
+      status: 'SCHEDULED',
     },
   });
 
-  console.log('  ✅ Sample completed trip created');
+  console.log('  ✅ Active trips created');
+
+  console.log('  ✅ Active trips created for Bus 101, Bus 202, and Bus 303 (Nyacyonga)');
 
   // ─── Summary ──────────────────────────────────
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

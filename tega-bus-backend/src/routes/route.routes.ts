@@ -5,12 +5,12 @@ import { authorizeRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
-router.use(authenticate);
-
-// Public (any authenticated user)
+// Public routes (no auth required)
 router.get('/search', routeController.searchRoutes);
 router.get('/', routeController.getAllRoutes);
 router.get('/:id', routeController.getRouteById);
+
+router.use(authenticate);
 
 // Admin only
 router.post('/', authorizeRoles('ADMIN'), routeController.createRoute);

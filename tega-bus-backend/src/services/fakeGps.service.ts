@@ -168,6 +168,14 @@ class FakeGpsService {
     return this.getPublicState(sim);
   }
 
+  getSimulation(busId: string): SimulationState | undefined {
+    return this.simulations.get(busId);
+  }
+
+  getAllSimulations(): Map<string, SimulationState> {
+    return this.simulations;
+  }
+
   /**
    * Start or Resume Simulation for a Bus
    */

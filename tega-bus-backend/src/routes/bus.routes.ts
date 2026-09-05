@@ -5,10 +5,14 @@ import { authorizeRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
+// Public routes (no auth required)
+router.get('/active', busController.getActiveBuses);
+router.get('/nearby', busController.getNearbyBuses);
+router.get('/upcoming-trip', busController.getUpcomingTrip);
+
 router.use(authenticate);
 
-// Public (any authenticated user)
-router.get('/active', busController.getActiveBuses);
+// Authenticated user routes
 router.get('/', busController.getAllBuses);
 router.get('/:id', busController.getBusById);
 router.get('/:id/location', busController.getBusLocation);

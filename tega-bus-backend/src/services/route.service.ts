@@ -12,7 +12,7 @@ export interface CreateRouteInput {
   estimatedDuration: number;
 }
 
-export interface UpdateRouteInput extends Partial<CreateRouteInput> {}
+export interface UpdateRouteInput extends Partial<CreateRouteInput> { }
 
 const ROUTE_INCLUDE = {
   stops: { orderBy: { order: 'asc' as const } },
@@ -73,19 +73,19 @@ export const searchRoutes = async (from?: string, to?: string) => {
       AND: [
         from
           ? {
-              OR: [
-                { startLocation: { contains: from, mode: 'insensitive' } },
-                { name: { contains: from, mode: 'insensitive' } },
-              ],
-            }
+            OR: [
+              { startLocation: { contains: from, mode: 'insensitive' } },
+              { name: { contains: from, mode: 'insensitive' } },
+            ],
+          }
           : {},
         to
           ? {
-              OR: [
-                { destination: { contains: to, mode: 'insensitive' } },
-                { name: { contains: to, mode: 'insensitive' } },
-              ],
-            }
+            OR: [
+              { destination: { contains: to, mode: 'insensitive' } },
+              { name: { contains: to, mode: 'insensitive' } },
+            ],
+          }
           : {},
       ],
     },

@@ -1,8 +1,9 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { BusStatus } from '@prisma/client';
 import * as busService from '../services/bus.service';
 import { sendSuccess, sendCreated } from '../utils/response';
+import { AppError } from '../middleware/error.middleware';
 import { AuthenticatedRequest } from '../types';
 
 const createBusSchema = z.object({
@@ -40,8 +41,64 @@ export const getActiveBuses = async (
 ): Promise<void> => {
   try {
     const buses = await busService.getActiveBuses();
-    sendSuccess(res, { buses });
+    sendSuccess(res, buses);
   } catch (err) { next(err); }
+};
+
+export const getNearbyBuses = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const latStr = req.query['latitude'] as string | undefined;
+    const lngStr = req.query['longitude'] as string | undefined;
+    const destination = (req.query['destination'] as string | undefined) || '';
+
+    if (!latStr || !lngStr) {
+      throw new AppError('latitude and longitude query parameters are required', 400);
+    }
+
+    const passengerLat = parseFloat(latStr);
+    const passengerLng = parseFloat(lngStr);
+
+    if (isNaN(passengerLat) || isNaN(passengerLng)) {
+      throw new AppError('Invalid latitude or longitude format', 400);
+    }
+
+    const buses = await busService.getNearbyBusesForDestination({
+      passengerLat,
+      passengerLng,
+      destination,
+    });
+
+    sendSuccess(res, buses);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getUpcomingTrip = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const latStr = req.query['latitude'] as string | undefined;
+    const lngStr = req.query['longitude'] as string | undefined;
+
+    const passengerLat = latStr ? parseFloat(latStr) : -1.9346;
+    const passengerLng = lngStr ? parseFloat(lngStr) : 30.0540;
+
+    const trip = await busService.getUpcomingTripForPassenger(
+      isNaN(passengerLat) ? -1.9346 : passengerLat,
+      isNaN(passengerLng) ? 30.0540 : passengerLng,
+    );
+
+    sendSuccess(res, trip);
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const getBusById = async (
