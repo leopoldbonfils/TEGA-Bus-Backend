@@ -9,6 +9,7 @@ import { BusStatus } from '@prisma/client';
 // Route colors broadcast with each telemetry payload
 export const ROUTE_COLORS: Record<string, string> = {
   '101': '#2563EB', // Blue
+  '109': '#F59E0B', // Amber
   '202': '#EF4444', // Red
   '203': '#16A34A', // Green
   '204': '#7C3AED', // Purple
@@ -193,6 +194,8 @@ export interface SimulationState {
   interval: ReturnType<typeof setInterval> | null;
   startedAt: string;
   lastPersistTime: number;
+  /** Monotonically increasing counter; clients must discard packets where sequence <= lastSeen */
+  sequence: number;
 }
 
 class FakeGpsService {
@@ -300,11 +303,13 @@ class FakeGpsService {
           include: { stops: { orderBy: { order: 'asc' } } },
         });
 
-    if (!route || route.stops.length < 2) {
-      throw new AppError('Route has insufficient stops for GPS simulation', 400);
+    if (!route) {
+      throw new AppError('Route not found', 404);
     }
 
-    const orderedStops: StopInfo[] = route.stops.map((s, idx) => ({
+    const routeNumber = extractRouteNumber(route.name) || '';
+
+    let orderedStops: StopInfo[] = (route.stops || []).map((s, idx) => ({
       id: s.id,
       name: s.name,
       latitude: s.latitude,
@@ -312,8 +317,25 @@ class FakeGpsService {
       order: s.order || idx + 1,
     }));
 
-    // ── Fetch Real Rwanda Road Network Coordinates from OSRM ─────────────
-    const routeNumber = extractRouteNumber(route.name) || '';
+    if (orderedStops.length < 2) {
+      const is109 =
+        routeNumber === '109' ||
+        route.name.includes('109') ||
+        (route.startLocation?.toLowerCase().includes('nyabugogo') &&
+          route.destination?.toLowerCase().includes('remera'));
+
+      if (is109) {
+        orderedStops = [
+          { name: 'Nyabugogo Bus Park', latitude: -1.9355, longitude: 30.0540, order: 1 },
+          { name: 'Kinamba Bridge', latitude: -1.9392, longitude: 30.0612, order: 2 },
+          { name: 'Rwandex', latitude: -1.9567, longitude: 30.0815, order: 3 },
+          { name: 'Sonatubes', latitude: -1.9612, longitude: 30.0965, order: 4 },
+          { name: 'Remera Bus Park', latitude: -1.9502, longitude: 30.1073, order: 5 },
+        ];
+      } else {
+        throw new AppError('Route has insufficient stops for GPS simulation', 400);
+      }
+    }
     const routeGeometryResult = await routingService.getRouteGeometry(orderedStops, actualRouteId);
 
     console.log(
@@ -368,6 +390,7 @@ class FakeGpsService {
       interval: null,
       startedAt: new Date().toISOString(),
       lastPersistTime: 0,
+      sequence: 0,
     };
 
     // ── Emit full OSRM road geometry so frontend draws the EXACT road path ──
@@ -516,6 +539,11 @@ class FakeGpsService {
     const sim = this.simulations.get(busId);
     if (!sim || sim.status !== 'RUNNING') return;
 
+    // Increment monotonic sequence counter before any calculation so every
+    // broadcast has a strictly increasing sequence number. Clients discard
+    // any packet where sequence <= their last seen value.
+    sim.sequence += 1;
+
     const now = Date.now();
     const deltaSec = sim.lastTickTime > 0 ? (now - sim.lastTickTime) / 1000 : 1.5;
     sim.lastTickTime = now;
@@ -657,6 +685,10 @@ class FakeGpsService {
       isDestinationReached: boolean;
       simulationStatus: string;
       speedMultiplier: number;
+      sequence: number;
+      routeProgress: number;
+      totalDistanceMeters: number;
+      traveledDistanceMeters: number;
     } = {
       busId: sim.busId,
       busNumber: sim.busNumber,
@@ -678,6 +710,18 @@ class FakeGpsService {
       simulationStatus: sim.status,
       speedMultiplier: sim.speedMultiplier,
       timestamp: new Date().toISOString(),
+      // ── Monotonic sync fields ──────────────────────────────────────────
+      // sequence: strictly increasing per-bus counter; clients reject packets
+      //           where sequence <= their lastSeenSequence[busId]
+      sequence: sim.sequence,
+      // routeProgress: authoritative 0.0–1.0 fraction of the total route
+      //                traveled so far. Clients use this instead of snapping
+      //                lat/lng back to the polyline, which is ambiguous.
+      routeProgress: sim.totalDistanceMeters > 0
+        ? Math.min(1, sim.traveledDistanceMeters / sim.totalDistanceMeters)
+        : 0,
+      totalDistanceMeters: sim.totalDistanceMeters,
+      traveledDistanceMeters: sim.traveledDistanceMeters,
     };
 
     socketService.emit('bus:location', payload);
@@ -749,6 +793,12 @@ class FakeGpsService {
           simulationStatus: sim.status,
           speedMultiplier: sim.speedMultiplier,
           timestamp: new Date().toISOString(),
+          sequence: sim.sequence,
+          routeProgress: sim.totalDistanceMeters > 0
+            ? Math.min(1, sim.traveledDistanceMeters / sim.totalDistanceMeters)
+            : 0,
+          totalDistanceMeters: sim.totalDistanceMeters,
+          traveledDistanceMeters: sim.traveledDistanceMeters,
         });
       }
     }

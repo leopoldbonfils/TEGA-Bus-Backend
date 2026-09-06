@@ -102,6 +102,36 @@ export const searchRoutes = async (from?: string, to?: string) => {
 
 export const createRoute = async (data: CreateRouteInput) => {
   const created = await prisma.route.create({ data, include: ROUTE_INCLUDE });
+
+  const is109 =
+    data.name.includes('109') ||
+    (data.startLocation.toLowerCase().includes('nyabugogo') &&
+      data.destination.toLowerCase().includes('remera'));
+
+  if (is109) {
+    const defaultStops = [
+      { name: 'Nyabugogo Bus Park', latitude: -1.9355, longitude: 30.0540, order: 1 },
+      { name: 'Kinamba Bridge', latitude: -1.9392, longitude: 30.0612, order: 2 },
+      { name: 'Rwandex', latitude: -1.9567, longitude: 30.0815, order: 3 },
+      { name: 'Sonatubes', latitude: -1.9612, longitude: 30.0965, order: 4 },
+      { name: 'Remera Bus Park', latitude: -1.9502, longitude: 30.1073, order: 5 },
+    ];
+
+    await prisma.busStop.createMany({
+      data: defaultStops.map((s) => ({
+        ...s,
+        routeId: created.id,
+      })),
+    });
+
+    const reloaded = await prisma.route.findUnique({
+      where: { id: created.id },
+      include: ROUTE_INCLUDE,
+    });
+
+    if (reloaded) return enrichRouteWithGeometry(reloaded);
+  }
+
   return enrichRouteWithGeometry(created);
 };
 
