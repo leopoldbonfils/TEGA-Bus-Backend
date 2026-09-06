@@ -1,9 +1,30 @@
 import { Coordinate } from '../types';
+import { ROUTE_WAYPOINTS } from './preloadedRoutes';
 
 export interface RouteGeometryResult {
   coordinates: Coordinate[];
   distanceKm: number;
   durationMinutes: number;
+}
+
+function haversineDistKm(a: Coordinate, b: Coordinate): number {
+  const R = 6371;
+  const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+  const dLon = ((b.longitude - a.longitude) * Math.PI) / 180;
+  const lat1 = (a.latitude * Math.PI) / 180;
+  const lat2 = (b.latitude * Math.PI) / 180;
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLon = Math.sin(dLon / 2);
+  const x = sinDLat * sinDLat + sinDLon * sinDLon * Math.cos(lat1) * Math.cos(lat2);
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function calcTotalDist(coords: Coordinate[]): number {
+  let total = 0;
+  for (let i = 0; i < coords.length - 1; i++) {
+    total += haversineDistKm(coords[i], coords[i + 1]);
+  }
+  return Math.round(total * 100) / 100;
 }
 
 class RoutingService {
@@ -33,6 +54,39 @@ class RoutingService {
         coordinates: stops.map((s) => ({ latitude: s.latitude, longitude: s.longitude })),
         distanceKm: 0,
         durationMinutes: 0,
+      };
+    }
+
+    // Determine route number if available
+    let routeNum = '';
+    if (routeId) {
+      const match = routeId.match(/\b(\d{3})\b/);
+      if (match) routeNum = match[1];
+    }
+
+    if (!routeNum && stops.length > 0) {
+      const last = stops[stops.length - 1];
+      const first = stops[0];
+      // Check for Nyacyonga
+      if (last.latitude < -1.86 && last.latitude > -1.88 && last.longitude > 30.07) {
+        const isRidge = stops.some((s) => s.name?.includes('Gisozi') || s.name?.includes('Batsinda'));
+        routeNum = isRidge ? '305' : '303';
+      } else if (first.latitude < -1.86 && first.latitude > -1.88 && first.longitude > 30.07) {
+        routeNum = '304';
+      }
+    }
+
+    // If we have verified preloaded real Rwanda road geometry for this route, use it directly
+    if (routeNum && ROUTE_WAYPOINTS[routeNum] && ROUTE_WAYPOINTS[routeNum].length > 0) {
+      const roadCoords = ROUTE_WAYPOINTS[routeNum];
+      const dist = calcTotalDist(roadCoords);
+      console.log(
+        `🛣️  RoutingService: Loaded pre-verified Rwanda road network geometry for Route ${routeNum} (${roadCoords.length} road coordinates, ${dist} km)`
+      );
+      return {
+        coordinates: roadCoords,
+        distanceKm: dist,
+        durationMinutes: Math.max(15, Math.round((dist / 30) * 60)),
       };
     }
 

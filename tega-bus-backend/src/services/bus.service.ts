@@ -272,8 +272,8 @@ export const getNearbyBusesForDestination = async ({
       }
     }
 
-    // 3. Direction check: Destination stop must be AFTER the passenger stop
-    if (destStopIndex <= passengerStopIndex) {
+    // 3. Direction check: Destination stop must be AFTER the passenger stop (only when destination is searched)
+    if (destTerm && destStopIndex <= passengerStopIndex) {
       // Traveling in the opposite direction or passenger already past destination
       continue;
     }
@@ -333,8 +333,8 @@ export const getNearbyBusesForDestination = async ({
       passengerLng,
     );
 
-    // If bus is past passenger stop and more than 200m away, it has already passed
-    if (busStopIndex > passengerStopIndex && distToPassengerDirect > 0.2) {
+    // If destination search is active, and bus is past passenger stop and more than 200m away, it has already passed
+    if (destTerm && busStopIndex > passengerStopIndex && distToPassengerDirect > 0.2) {
       continue;
     }
 

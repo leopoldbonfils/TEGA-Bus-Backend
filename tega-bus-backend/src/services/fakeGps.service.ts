@@ -94,6 +94,78 @@ export interface StopInfo {
   order: number;
 }
 
+export interface RouteSegment {
+  start: Coordinate;
+  end: Coordinate;
+  distanceMeters: number;
+  cumulativeStartMeters: number;
+  cumulativeEndMeters: number;
+  bearing: number;
+}
+
+export function buildRouteSegments(waypoints: Coordinate[]): { segments: RouteSegment[]; totalDistanceMeters: number } {
+  if (!waypoints || waypoints.length < 2) {
+    return { segments: [], totalDistanceMeters: 0 };
+  }
+
+  const segments: RouteSegment[] = [];
+  let cumulative = 0;
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const start = waypoints[i];
+    const end = waypoints[i + 1];
+    const distMeters = haversineKm(start, end) * 1000;
+    const bearing = Math.round(bearingDeg(start, end));
+    const cumStart = cumulative;
+    cumulative += distMeters;
+
+    segments.push({
+      start,
+      end,
+      distanceMeters: distMeters,
+      cumulativeStartMeters: cumStart,
+      cumulativeEndMeters: cumulative,
+      bearing,
+    });
+  }
+
+  return { segments, totalDistanceMeters: cumulative };
+}
+
+export function getPositionAtRouteDistance(
+  segments: RouteSegment[],
+  totalDistanceMeters: number,
+  traveledDistanceMeters: number
+): { position: Coordinate; heading: number; segmentIndex: number } {
+  if (!segments || segments.length === 0) {
+    return { position: { latitude: -1.9355, longitude: 30.0540 }, heading: 0, segmentIndex: 0 };
+  }
+
+  const targetDist = Math.max(0, Math.min(traveledDistanceMeters, totalDistanceMeters));
+
+  let segIdx = 0;
+  for (let i = 0; i < segments.length; i++) {
+    if (targetDist <= segments[i].cumulativeEndMeters || i === segments.length - 1) {
+      segIdx = i;
+      break;
+    }
+  }
+
+  const seg = segments[segIdx];
+  const segDist = seg.distanceMeters;
+  const offset = targetDist - seg.cumulativeStartMeters;
+  const fraction = segDist > 0 ? Math.max(0, Math.min(1, offset / segDist)) : 0;
+
+  const lat = seg.start.latitude + (seg.end.latitude - seg.start.latitude) * fraction;
+  const lng = seg.start.longitude + (seg.end.longitude - seg.start.longitude) * fraction;
+
+  return {
+    position: { latitude: lat, longitude: lng },
+    heading: seg.bearing,
+    segmentIndex: segIdx,
+  };
+}
+
 export interface SimulationState {
   busId: string;
   busNumber: string;
@@ -104,6 +176,10 @@ export interface SimulationState {
   speedMultiplier: number;
   currentWaypointIndex: number;
   waypoints: Coordinate[];
+  segments: RouteSegment[];
+  totalDistanceMeters: number;
+  traveledDistanceMeters: number;
+  lastTickTime: number;
   stops: StopInfo[];
   currentPosition: Coordinate;
   speed: number;
@@ -244,15 +320,16 @@ class FakeGpsService {
       `🛣️  FakeGPS: Loaded real Rwanda road geometry for Route ${routeNumber || route.name} (${routeGeometryResult.coordinates.length} road coordinates, ${routeGeometryResult.distanceKm} km)`
     );
 
-    // Micro-interpolate between road coordinates for 100% smooth GPS movement along curves
-    const denseWaypoints = generateDenseWaypoints(routeGeometryResult.coordinates, 0.025);
+    // Precalculate route segments for distance-based continuous movement
+    const { segments, totalDistanceMeters } = buildRouteSegments(routeGeometryResult.coordinates);
 
-    const initialPos = { ...denseWaypoints[0] };
+    const initialPos = { ...routeGeometryResult.coordinates[0] };
     const firstStopName = orderedStops[0]?.name || 'Start';
     const nextStopName = orderedStops[1]?.name || 'Next Stop';
     const distToNext = haversineKm(initialPos, orderedStops[1]);
-    const initSpeed = 26;
+    const initSpeed = 28;
     const initEta = Math.max(1, Math.round((distToNext / initSpeed) * 60));
+    const initHeading = segments.length > 0 ? segments[0].bearing : 90;
 
     const routeColor = ROUTE_COLORS[routeNumber] || '#2563EB';
 
@@ -273,14 +350,15 @@ class FakeGpsService {
       status: 'RUNNING',
       speedMultiplier: Math.max(0.5, speedMultiplier),
       currentWaypointIndex: 0,
-      waypoints: denseWaypoints,
+      waypoints: routeGeometryResult.coordinates,
+      segments,
+      totalDistanceMeters,
+      traveledDistanceMeters: 0,
+      lastTickTime: Date.now(),
       stops: orderedStops,
       currentPosition: initialPos,
       speed: initSpeed,
-      heading:
-        denseWaypoints.length > 1
-          ? Math.round(bearingDeg(denseWaypoints[0], denseWaypoints[1]))
-          : 90,
+      heading: initHeading,
       currentStop: firstStopName,
       nextStop: nextStopName,
       distanceToNextStopKm: Math.round(distToNext * 10) / 10,
@@ -309,7 +387,7 @@ class FakeGpsService {
 
     this.simulations.set(busId, simState);
     console.log(
-      `🚌 FakeGPS: Started Bus ${bus.busNumber} on Route ${routeNumber} along real roads (${denseWaypoints.length} road steps)`
+      `🚌 FakeGPS: Started Bus ${bus.busNumber} on Route ${routeNumber} along real roads (${simState.segments.length} road segments)`
     );
 
     return this.getPublicState(simState);
@@ -353,6 +431,7 @@ class FakeGpsService {
 
     sim.status = 'RUNNING';
     sim.speed = 28;
+    sim.lastTickTime = Date.now();
 
     const updateIntervalMs = Math.round(
       (env.FAKE_GPS_INTERVAL || 2000) / sim.speedMultiplier
@@ -363,7 +442,7 @@ class FakeGpsService {
     }, updateIntervalMs);
 
     console.log(
-      `▶ FakeGPS: Resumed Bus ${sim.busNumber} (Route ${sim.routeNumber}) from road step ${sim.currentWaypointIndex}/${sim.waypoints.length}`
+      `▶ FakeGPS: Resumed Bus ${sim.busNumber} (Route ${sim.routeNumber}) from road distance ${Math.round(sim.traveledDistanceMeters)}m / ${Math.round(sim.totalDistanceMeters)}m`
     );
 
     this.broadcastLocation(sim);
@@ -431,21 +510,39 @@ class FakeGpsService {
   }
 
   /**
-   * Simulation Tick: Advance along real road network waypoints
+   * Simulation Tick: Advance smoothly along real road network by exact distance
    */
   private async tick(busId: string): Promise<void> {
     const sim = this.simulations.get(busId);
     if (!sim || sim.status !== 'RUNNING') return;
 
-    // Check if reached destination
-    if (sim.currentWaypointIndex >= sim.waypoints.length - 1) {
+    const now = Date.now();
+    const deltaSec = sim.lastTickTime > 0 ? (now - sim.lastTickTime) / 1000 : 1.5;
+    sim.lastTickTime = now;
+
+    // Clamp deltaSec to prevent huge leaps from delays (Req 7)
+    const clampedDelta = Math.min(Math.max(deltaSec, 0.05), 3.0);
+
+    // Realistic smooth speed with subtle variation (24 - 32 km/h)
+    const baseSpeed = 28;
+    const speedJitter = Math.sin(sim.traveledDistanceMeters * 0.005) * 3;
+    sim.speed = Math.max(22, Math.round(baseSpeed + speedJitter));
+
+    // distanceToMove = speedInMetersPerSecond * deltaTime (Req 2 & 3)
+    const speedMps = (sim.speed * 1000) / 3600;
+    const distanceToMove = speedMps * clampedDelta * sim.speedMultiplier;
+
+    sim.traveledDistanceMeters += distanceToMove;
+
+    // Check if reached destination (Req 7)
+    if (sim.traveledDistanceMeters >= sim.totalDistanceMeters) {
+      sim.traveledDistanceMeters = sim.totalDistanceMeters;
       sim.isDestinationReached = true;
       sim.progress = 100;
       sim.speed = 0;
       sim.distanceToNextStopKm = 0;
       sim.etaMinutes = 0;
-      sim.currentStop =
-        sim.stops[sim.stops.length - 1]?.name || 'Destination';
+      sim.currentStop = sim.stops[sim.stops.length - 1]?.name || 'Destination';
       sim.nextStop = 'Destination Reached';
       sim.status = 'STOPPED';
 
@@ -463,40 +560,33 @@ class FakeGpsService {
       return;
     }
 
-    // Advance 1 road waypoint step
-    const prevPos = { ...sim.currentPosition };
-    sim.currentWaypointIndex += 1;
-    const currentWaypoint = sim.waypoints[sim.currentWaypointIndex];
-    sim.currentPosition = { ...currentWaypoint };
+    // Exact road coordinate & bearing from current route segment (Req 4, 5, 8, 9)
+    const { position, heading, segmentIndex } = getPositionAtRouteDistance(
+      sim.segments,
+      sim.totalDistanceMeters,
+      sim.traveledDistanceMeters
+    );
 
-    // Calculate heading (bearing angle in degrees along actual road curve)
-    const head = Math.round(bearingDeg(prevPos, sim.currentPosition));
-    if (head >= 0 && head <= 360) {
-      sim.heading = head;
-    }
-
-    // Realistic smooth speed (between 22 and 36 km/h)
-    const baseSpeed = 28;
-    const speedJitter = Math.sin(sim.currentWaypointIndex * 0.3) * 5;
-    sim.speed = Math.max(18, Math.round(baseSpeed + speedJitter));
+    sim.currentPosition = position;
+    sim.heading = heading;
+    sim.currentWaypointIndex = segmentIndex;
 
     // Calculate Trip Progress Percentage (0 - 100%)
     sim.progress = Math.min(
       99,
-      Math.round((sim.currentWaypointIndex / (sim.waypoints.length - 1)) * 100)
+      Math.round((sim.traveledDistanceMeters / sim.totalDistanceMeters) * 100)
     );
 
     // Determine current & next stop and calculate road-based remaining distance
     this.updateStopTelemetry(sim);
 
     // Persist to DB periodically (every ~5 seconds)
-    const now = Date.now();
     if (now - sim.lastPersistTime > 4000) {
       sim.lastPersistTime = now;
       this.persistLocation(sim).catch(() => { });
     }
 
-    // Broadcast location over Socket.IO to admin dashboard
+    // Broadcast location over Socket.IO
     this.broadcastLocation(sim);
   }
 
@@ -508,10 +598,11 @@ class FakeGpsService {
 
     let nextStopIdx = sim.stops.length - 1;
 
-    // Look for next stop ahead of current position
     for (let i = 0; i < sim.stops.length; i++) {
       const stopFraction = i / (sim.stops.length - 1);
-      const currFraction = sim.currentWaypointIndex / (sim.waypoints.length - 1);
+      const currFraction = sim.totalDistanceMeters > 0
+        ? sim.traveledDistanceMeters / sim.totalDistanceMeters
+        : 0;
 
       if (currFraction < stopFraction) {
         nextStopIdx = i;
@@ -522,11 +613,11 @@ class FakeGpsService {
       }
     }
 
-    // Check if bus is close to a stop
+    // Proximity check (< 120m to a stop)
     for (let i = 0; i < sim.stops.length; i++) {
       const stop = sim.stops[i];
       const distToStop = haversineKm(sim.currentPosition, stop);
-      if (distToStop < 0.1) {
+      if (distToStop < 0.12) {
         sim.currentStop = stop.name;
         nextStopIdx = Math.min(i + 1, sim.stops.length - 1);
         break;
@@ -536,20 +627,11 @@ class FakeGpsService {
     const nextStopObj = sim.stops[nextStopIdx];
     sim.nextStop = nextStopObj ? nextStopObj.name : sim.stops[sim.stops.length - 1].name;
 
-    // Calculate road distance along remaining waypoints to the next stop
-    let remainingRoadDist = 0;
+    // Remaining road distance
     const stopFraction = nextStopIdx / (sim.stops.length - 1);
-    const stopTargetWpIdx = Math.round(stopFraction * (sim.waypoints.length - 1));
-
-    for (let w = sim.currentWaypointIndex; w < stopTargetWpIdx && w < sim.waypoints.length - 1; w++) {
-      remainingRoadDist += haversineKm(sim.waypoints[w], sim.waypoints[w + 1]);
-    }
-
-    if (remainingRoadDist === 0 && nextStopObj) {
-      remainingRoadDist = haversineKm(sim.currentPosition, nextStopObj);
-    }
-
-    sim.distanceToNextStopKm = Math.max(0.1, Math.round(remainingRoadDist * 10) / 10);
+    const stopTargetDistanceMeters = stopFraction * sim.totalDistanceMeters;
+    const remainingMeters = Math.max(0, stopTargetDistanceMeters - sim.traveledDistanceMeters);
+    sim.distanceToNextStopKm = Math.max(0.1, Math.round((remainingMeters / 1000) * 10) / 10);
 
     const speedForEta = sim.speed > 5 ? sim.speed : 25;
     sim.etaMinutes = Math.max(

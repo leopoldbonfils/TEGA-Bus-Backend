@@ -172,6 +172,15 @@ async function main(): Promise<void> {
       estimatedDuration: 30,
     },
   });
+  const route305 = await prisma.route.create({
+    data: {
+      name: 'Route 305 — Nyabugogo → Nyacyonga (via Batsinda)',
+      startLocation: 'Nyabugogo Terminal',
+      destination: 'Nyacyonga',
+      fare: 400,
+      estimatedDuration: 35,
+    },
+  });
 
   console.log('  ✅ Routes created');
 
@@ -217,10 +226,20 @@ async function main(): Promise<void> {
 
   await prisma.busStop.createMany({
     data: [
-      { name: 'Nyabugogo', latitude: -1.9346, longitude: 30.0540, order: 1, routeId: route303.id },
-      { name: 'Gatsata', latitude: -1.9160, longitude: 30.0520, order: 2, routeId: route303.id },
-      { name: 'Karuruma', latitude: -1.8900, longitude: 30.0450, order: 3, routeId: route303.id },
-      { name: 'Nyacyonga', latitude: -1.8650, longitude: 30.0380, order: 4, routeId: route303.id },
+      { name: 'Nyabugogo', latitude: -1.9355, longitude: 30.0540, order: 1, routeId: route303.id },
+      { name: 'Gatsata', latitude: -1.9220, longitude: 30.0515, order: 2, routeId: route303.id },
+      { name: 'Karuruma', latitude: -1.8965, longitude: 30.0570, order: 3, routeId: route303.id },
+      { name: 'Nyacyonga', latitude: -1.8682, longitude: 30.0847, order: 4, routeId: route303.id },
+    ],
+  });
+
+  await prisma.busStop.createMany({
+    data: [
+      { name: 'Nyabugogo', latitude: -1.9355, longitude: 30.0540, order: 1, routeId: route305.id },
+      { name: 'Gisozi', latitude: -1.9315, longitude: 30.0645, order: 2, routeId: route305.id },
+      { name: 'Kagugu', latitude: -1.9180, longitude: 30.0785, order: 3, routeId: route305.id },
+      { name: 'Batsinda', latitude: -1.8985, longitude: 30.0818, order: 4, routeId: route305.id },
+      { name: 'Nyacyonga', latitude: -1.8682, longitude: 30.0847, order: 5, routeId: route305.id },
     ],
   });
 
@@ -297,6 +316,16 @@ async function main(): Promise<void> {
       routeId: route303.id,
     },
   });
+  const bus305 = await prisma.bus.create({
+    data: {
+      busNumber: '305',
+      plateNumber: 'RAD 305 B',
+      capacity: 50,
+      status: BusStatus.ON_TRIP,
+      driverId: driver3.id,
+      routeId: route305.id,
+    },
+  });
 
   console.log('  ✅ Buses created');
 
@@ -348,6 +377,15 @@ async function main(): Promise<void> {
       heading: 5,
     },
   });
+  await prisma.busLocation.create({
+    data: {
+      busId: bus305.id,
+      latitude: -1.9315,
+      longitude: 30.0645,
+      speed: 28,
+      heading: 45,
+    },
+  });
 
   console.log('  ✅ Locations created');
 
@@ -379,6 +417,15 @@ async function main(): Promise<void> {
       routeId: route303.id,
       status: 'ACTIVE',
       startedAt: new Date(Date.now() - 5 * 60 * 1000),
+    },
+  });
+  await prisma.trip.create({
+    data: {
+      busId: bus305.id,
+      driverId: driver3.id,
+      routeId: route305.id,
+      status: 'ACTIVE',
+      startedAt: new Date(Date.now() - 3 * 60 * 1000),
     },
   });
   await prisma.trip.create({
