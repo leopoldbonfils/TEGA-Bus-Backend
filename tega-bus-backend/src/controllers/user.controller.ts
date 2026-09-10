@@ -111,3 +111,44 @@ export const deleteUser = async (
     next(err);
   }
 };
+
+export const registerPushToken = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      sendSuccess(res, { message: 'Unauthorized' });
+      return;
+    }
+
+    const { token, platform } = req.body as { token?: string; platform?: string };
+
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      sendSuccess(res, { message: 'token is required' });
+      return;
+    }
+
+    // Upsert: if this exact token already exists, update its userId/platform
+    const pushToken = await prisma.pushToken.upsert({
+      where: { token: token.trim() },
+      update: {
+        userId,
+        platform: platform ?? 'unknown',
+        updatedAt: new Date(),
+      },
+      create: {
+        userId,
+        token: token.trim(),
+        platform: platform ?? 'unknown',
+      },
+    });
+
+    console.log(`📱 Push token registered for user ${userId} [${platform ?? 'unknown'}]`);
+    sendSuccess(res, { pushToken: { id: pushToken.id, token: pushToken.token } });
+  } catch (err) {
+    next(err);
+  }
+};

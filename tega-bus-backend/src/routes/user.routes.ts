@@ -5,6 +5,9 @@ import { authorizeRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
+
+router.post('/push-token', authenticate, userController.registerPushToken);
+// Admin-only routes
 router.use(authenticate);
 router.use(authorizeRoles('ADMIN'));
 
@@ -15,3 +18,4 @@ router.put('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 
 export default router;
+

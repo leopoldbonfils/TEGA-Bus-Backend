@@ -20,6 +20,14 @@ enum Role {
   ADMIN
 }
 
+enum AlertType {
+  GENERAL
+  SERVICE_ALERT
+  BUS_APPROACHING
+  DELAY
+  ROUTE_UPDATE
+}
+
 enum DriverStatus {
   AVAILABLE
   ON_TRIP
@@ -54,7 +62,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  driver Driver?
+  driver     Driver?
+  pushTokens PushToken[]
 
   @@map("users")
 }
@@ -85,9 +94,10 @@ model Route {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  buses Bus[]
-  stops BusStop[]
-  trips Trip[]
+  buses  Bus[]
+  stops  BusStop[]
+  trips  Trip[]
+  alerts Alert[]
 
   @@map("routes")
 }
@@ -156,4 +166,31 @@ model BusLocation {
   bus Bus @relation(fields: [busId], references: [id], onDelete: Cascade)
 
   @@map("bus_locations")
+}
+
+model Alert {
+  id        String    @id @default(cuid())
+  title     String
+  message   String
+  type      AlertType @default(GENERAL)
+  routeId   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  route Route? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@map("alerts")
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String   @default("unknown")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_tokens")
 }

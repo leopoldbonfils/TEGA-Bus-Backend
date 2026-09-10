@@ -11,6 +11,7 @@ const envSchema = z.object({
   FAKE_GPS_INTERVAL: z.string().default('5000'),
   CLIENT_URL: z.string().default('http://localhost:3000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  EXPO_ACCESS_TOKEN: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -29,6 +30,7 @@ export const env = {
   FAKE_GPS_INTERVAL: parseInt(parsed.data.FAKE_GPS_INTERVAL, 10),
   CLIENT_URL: parsed.data.CLIENT_URL,
   NODE_ENV: parsed.data.NODE_ENV,
+  EXPO_ACCESS_TOKEN: parsed.data.EXPO_ACCESS_TOKEN ?? null,
   isDev: parsed.data.NODE_ENV === 'development',
   isProd: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',

@@ -16,12 +16,10 @@ import stopRoutes from './routes/stop.routes';
 import tripRoutes from './routes/trip.routes';
 import locationRoutes from './routes/location.routes';
 import adminRoutes from './routes/admin.routes';
+import alertRoutes from './routes/alert.routes';
 
 const app: Application = express();
 
-// ─────────────────────────────────────────────
-// Security & Logging
-// ─────────────────────────────────────────────
 
 app.use(helmet());
 
@@ -43,30 +41,21 @@ app.use(
 
 app.use(morgan(env.isDev ? 'dev' : 'combined'));
 
-// ─────────────────────────────────────────────
-// Body Parsing
-// ─────────────────────────────────────────────
-
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
-
-// ─────────────────────────────────────────────
 // Health Check
-// ─────────────────────────────────────────────
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     success: true,
-    message: '🚌 TEGA Bus API is running',
+    message: 'TEGA Bus API is running',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     env: env.NODE_ENV,
   });
 });
 
-// ─────────────────────────────────────────────
 // API Routes
-// ─────────────────────────────────────────────
 
 const API = '/api';
 
@@ -79,19 +68,13 @@ app.use(`${API}/stops`, stopRoutes);
 app.use(`${API}/trips`, tripRoutes);
 app.use(`${API}/locations`, locationRoutes);
 app.use(`${API}/admin`, adminRoutes);
-
-// ─────────────────────────────────────────────
-// 404 Handler
-// ─────────────────────────────────────────────
+app.use(`${API}/alerts`, alertRoutes);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ─────────────────────────────────────────────
 // Global Error Handler
-// ─────────────────────────────────────────────
-
 app.use(errorHandler);
 
 export default app;
