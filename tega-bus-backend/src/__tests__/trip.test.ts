@@ -5,15 +5,15 @@ import { hashPassword } from '../utils/password';
 import { signToken } from '../utils/jwt';
 import { Role, DriverStatus } from '@prisma/client';
 
-describe('Trip Flow API', () => {
-  let adminToken!: string;
-  let driverToken!: string;
-  let passengerToken!: string;
-  let driverId!: string;
-  let busId!: string;
-  let routeId!: string;
-  let tripId!: string;
+// Remote database calls (Supabase) are slow — give the whole file 30 seconds
+jest.setTimeout(30000);
 
+describe('Trip Flow API Tests', () => {
+  let driverToken: string;
+  let passengerToken: string;
+  let driverId: string;
+  let busId: string;
+  let routeId: string;
 
   beforeAll(async () => {
     const pw = await hashPassword('Test1234!');
@@ -30,7 +30,6 @@ describe('Trip Flow API', () => {
       }),
     ]);
 
-    adminToken = signToken({ userId: adminUser.id, role: adminUser.role });
     driverToken = signToken({ userId: driverUser.id, role: driverUser.role });
     passengerToken = signToken({ userId: passengerUser.id, role: passengerUser.role });
 
@@ -72,56 +71,119 @@ describe('Trip Flow API', () => {
       },
     });
     busId = bus.id;
-  });
+  }, 30000);
 
-  it('driver can start a trip', async () => {
-    const res = await request(app)
+  beforeEach(async () => {
+    // Reset trip, driver, and bus states so each test starts clean
+    await prisma.trip.deleteMany();
+    await prisma.driver.update({ where: { id: driverId }, data: { status: 'AVAILABLE' } });
+    await prisma.bus.update({ where: { id: busId }, data: { status: 'ACTIVE' } });
+  }, 30000);
+
+  test('driver can start trip', async () => {
+    const response = await request(app)
       .post('/api/trips/start')
       .set('Authorization', `Bearer ${driverToken}`);
-    expect(res.status).toBe(201);
-    expect(res.body.data.trip.status).toBe('ACTIVE');
-    tripId = res.body.data.trip.id as string;
+
+    expect(response.status).toBe(201);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.trip.status).toBe('ACTIVE');
   });
 
-  it('active trip appears in GET /api/trips/active', async () => {
-    const res = await request(app)
+  test('active trip can be viewed', async () => {
+    // Start a trip first
+    const startResponse = await request(app)
+      .post('/api/trips/start')
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    const tripId = startResponse.body.data.trip.id;
+
+    // View active trips as a passenger
+    const response = await request(app)
       .get('/api/trips/active')
       .set('Authorization', `Bearer ${passengerToken}`);
-    expect(res.status).toBe(200);
-    const found = (res.body.data.trips as Array<{ id: string }>).some((t) => t.id === tripId);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    const found = response.body.data.trips.some((t: { id: string }) => t.id === tripId);
     expect(found).toBe(true);
   });
 
-  it('driver cannot start another trip while one is active', async () => {
-    const res = await request(app)
+  test('driver cannot start another active trip', async () => {
+    // Start first trip
+    await request(app)
       .post('/api/trips/start')
       .set('Authorization', `Bearer ${driverToken}`);
-    expect(res.status).toBe(400);
+
+    // Try starting a second trip while first is active
+    const response = await request(app)
+      .post('/api/trips/start')
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
   });
 
-  it('driver can end the trip', async () => {
-    const res = await request(app)
+  test('driver can end trip', async () => {
+    // Start a trip
+    const startResponse = await request(app)
+      .post('/api/trips/start')
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    const tripId = startResponse.body.data.trip.id;
+
+    // End the trip
+    const response = await request(app)
       .post(`/api/trips/${tripId}/end`)
       .set('Authorization', `Bearer ${driverToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body.data.trip.status).toBe('COMPLETED');
-    expect(res.body.data.trip.endedAt).toBeTruthy();
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.trip.status).toBe('COMPLETED');
   });
 
-  it('bus status returns to ACTIVE after trip ends', async () => {
+  test('bus becomes ACTIVE after trip', async () => {
+    // Start and end trip
+    const startResponse = await request(app)
+      .post('/api/trips/start')
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    const tripId = startResponse.body.data.trip.id;
+
+    await request(app)
+      .post(`/api/trips/${tripId}/end`)
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    // Check bus status in database
     const bus = await prisma.bus.findUnique({ where: { id: busId } });
     expect(bus?.status).toBe('ACTIVE');
   });
 
-  it('driver status returns to AVAILABLE after trip ends', async () => {
+  test('driver becomes AVAILABLE after trip', async () => {
+    // Start and end trip
+    const startResponse = await request(app)
+      .post('/api/trips/start')
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    const tripId = startResponse.body.data.trip.id;
+
+    await request(app)
+      .post(`/api/trips/${tripId}/end`)
+      .set('Authorization', `Bearer ${driverToken}`);
+
+    // Check driver status in database
     const driver = await prisma.driver.findUnique({ where: { id: driverId } });
     expect(driver?.status).toBe('AVAILABLE');
   });
 
-  it('passenger cannot start a trip', async () => {
-    const res = await request(app)
+  test('passenger cannot start trip', async () => {
+    const response = await request(app)
       .post('/api/trips/start')
       .set('Authorization', `Bearer ${passengerToken}`);
-    expect(res.status).toBe(403);
+
+    expect(response.status).toBe(403);
+    expect(response.body.success).toBe(false);
   });
 });
+

@@ -5,7 +5,7 @@ import { hashPassword } from '../utils/password';
 import { signToken } from '../utils/jwt';
 import { Role } from '@prisma/client';
 
-describe('Authorization (RBAC)', () => {
+describe('Role-Based Access Control (RBAC) Tests', () => {
   let adminToken: string;
   let driverToken: string;
   let passengerToken: string;
@@ -28,70 +28,87 @@ describe('Authorization (RBAC)', () => {
     adminToken = signToken({ userId: admin.id, role: admin.role });
     driverToken = signToken({ userId: driver.id, role: driver.role });
     passengerToken = signToken({ userId: passenger.id, role: passenger.role });
-  });
+  }, 30000);
 
-  describe('Passenger restrictions', () => {
-    it('cannot access admin dashboard', async () => {
-      const res = await request(app)
+  describe('Passenger Role Permissions', () => {
+    test('passenger cannot access admin features', async () => {
+      const response = await request(app)
         .get('/api/admin/dashboard')
         .set('Authorization', `Bearer ${passengerToken}`);
-      expect(res.status).toBe(403);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
 
-    it('cannot start a trip', async () => {
-      const res = await request(app)
+    test('passenger cannot start a trip', async () => {
+      const response = await request(app)
         .post('/api/trips/start')
         .set('Authorization', `Bearer ${passengerToken}`);
-      expect(res.status).toBe(403);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
 
-    it('can view routes', async () => {
-      const res = await request(app)
+    test('passenger can view routes', async () => {
+      const response = await request(app)
         .get('/api/routes')
         .set('Authorization', `Bearer ${passengerToken}`);
-      expect(res.status).toBe(200);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
     });
 
-    it('cannot create a route', async () => {
-      const res = await request(app)
+    test('passenger cannot create route', async () => {
+      const response = await request(app)
         .post('/api/routes')
         .set('Authorization', `Bearer ${passengerToken}`)
-        .send({ name: 'Hack', startLocation: 'A', destination: 'B', fare: 100, estimatedDuration: 10 });
-      expect(res.status).toBe(403);
+        .send({ name: 'Hack Route', startLocation: 'A', destination: 'B', fare: 100, estimatedDuration: 10 });
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  describe('Driver restrictions', () => {
-    it('cannot access admin dashboard', async () => {
-      const res = await request(app)
+  describe('Driver Role Permissions', () => {
+    test('driver cannot access admin features', async () => {
+      const response = await request(app)
         .get('/api/admin/dashboard')
         .set('Authorization', `Bearer ${driverToken}`);
-      expect(res.status).toBe(403);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
 
-    it('cannot create a bus', async () => {
-      const res = await request(app)
+    test('driver cannot create bus', async () => {
+      const response = await request(app)
         .post('/api/buses')
         .set('Authorization', `Bearer ${driverToken}`)
         .send({ busNumber: 'X', plateNumber: 'Y', capacity: 30 });
-      expect(res.status).toBe(403);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  describe('Admin access', () => {
-    it('can access admin dashboard', async () => {
-      const res = await request(app)
+  describe('Admin Role Permissions', () => {
+    test('admin can access admin dashboard', async () => {
+      const response = await request(app)
         .get('/api/admin/dashboard')
         .set('Authorization', `Bearer ${adminToken}`);
-      expect(res.status).toBe(200);
-      expect(res.body.data.statistics).toBeDefined();
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.statistics).toBeDefined();
     });
 
-    it('can access all users', async () => {
-      const res = await request(app)
+    test('admin can access users', async () => {
+      const response = await request(app)
         .get('/api/users')
         .set('Authorization', `Bearer ${adminToken}`);
-      expect(res.status).toBe(200);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
     });
   });
 });
+

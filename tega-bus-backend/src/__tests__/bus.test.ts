@@ -5,7 +5,7 @@ import { hashPassword } from '../utils/password';
 import { signToken } from '../utils/jwt';
 import { Role } from '@prisma/client';
 
-describe('Bus & Route API', () => {
+describe('Bus & Route API Tests', () => {
   let adminToken: string;
   let passengerToken: string;
   let routeId: string;
@@ -23,11 +23,11 @@ describe('Bus & Route API', () => {
     ]);
     adminToken = signToken({ userId: admin.id, role: admin.role });
     passengerToken = signToken({ userId: passenger.id, role: passenger.role });
-  });
+  }, 30000);
 
-  describe('Route CRUD', () => {
-    it('admin can create a route', async () => {
-      const res = await request(app)
+  describe('Route Management', () => {
+    test('admin can create route', async () => {
+      const response = await request(app)
         .post('/api/routes')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -37,40 +37,49 @@ describe('Bus & Route API', () => {
           fare: 400,
           estimatedDuration: 30,
         });
-      expect(res.status).toBe(201);
-      expect(res.body.data.route.name).toBe('Test Route 999');
-      routeId = res.body.data.route.id as string;
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.route.name).toBe('Test Route 999');
+
+      routeId = response.body.data.route.id;
     });
 
-    it('anyone can get all routes', async () => {
-      const res = await request(app)
+    test('users can view routes', async () => {
+      const response = await request(app)
         .get('/api/routes')
         .set('Authorization', `Bearer ${passengerToken}`);
-      expect(res.status).toBe(200);
-      expect(Array.isArray(res.body.data.routes)).toBe(true);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data.routes)).toBe(true);
     });
 
-    it('can search routes by from', async () => {
-      const res = await request(app)
+    test('users can search routes', async () => {
+      const response = await request(app)
         .get('/api/routes/search?from=Start City')
         .set('Authorization', `Bearer ${passengerToken}`);
-      expect(res.status).toBe(200);
-      expect(res.body.data.routes.length).toBeGreaterThan(0);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.routes.length).toBeGreaterThan(0);
     });
 
-    it('admin can update a route', async () => {
-      const res = await request(app)
+    test('admin can update route', async () => {
+      const response = await request(app)
         .put(`/api/routes/${routeId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ fare: 500 });
-      expect(res.status).toBe(200);
-      expect(res.body.data.route.fare).toBe(500);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.route.fare).toBe(500);
     });
   });
 
-  describe('Bus CRUD', () => {
-    it('admin can create a bus', async () => {
-      const res = await request(app)
+  describe('Bus Management', () => {
+    test('admin can create bus', async () => {
+      const response = await request(app)
         .post('/api/buses')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -79,51 +88,65 @@ describe('Bus & Route API', () => {
           capacity: 40,
           routeId,
         });
-      expect(res.status).toBe(201);
-      expect(res.body.data.bus.capacity).toBe(40);
-      busId = res.body.data.bus.id as string;
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.bus.capacity).toBe(40);
+
+      busId = response.body.data.bus.id;
     });
 
-    it('anyone can get all buses', async () => {
-      const res = await request(app)
+    test('users can view buses', async () => {
+      const response = await request(app)
         .get('/api/buses')
         .set('Authorization', `Bearer ${passengerToken}`);
-      expect(res.status).toBe(200);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
     });
 
-    it('admin can update bus status', async () => {
-      const res = await request(app)
+    test('admin can update bus', async () => {
+      const response = await request(app)
         .put(`/api/buses/${busId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'MAINTENANCE' });
-      expect(res.status).toBe(200);
-      expect(res.body.data.bus.status).toBe('MAINTENANCE');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.bus.status).toBe('MAINTENANCE');
     });
 
-    it('passenger cannot create a bus', async () => {
-      const res = await request(app)
+    test('passenger cannot create bus', async () => {
+      const response = await request(app)
         .post('/api/buses')
         .set('Authorization', `Bearer ${passengerToken}`)
         .send({ busNumber: 'HACK', plateNumber: 'HACK-1', capacity: 10 });
-      expect(res.status).toBe(403);
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  describe('Location validation', () => {
-    it('rejects invalid latitude', async () => {
-      const res = await request(app)
+  describe('Location Data Validation', () => {
+    test('invalid latitude is rejected', async () => {
+      const response = await request(app)
         .post('/api/locations')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ busId, latitude: 999, longitude: 30.0, speed: 20, heading: 90 });
-      expect(res.status).toBe(400);
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
 
-    it('rejects invalid longitude', async () => {
-      const res = await request(app)
+    test('invalid longitude is rejected', async () => {
+      const response = await request(app)
         .post('/api/locations')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ busId, latitude: -1.9, longitude: 999, speed: 20, heading: 90 });
-      expect(res.status).toBe(400);
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 });
+
