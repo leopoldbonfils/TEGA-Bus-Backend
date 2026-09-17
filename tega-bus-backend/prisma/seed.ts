@@ -75,6 +75,15 @@ async function main(): Promise<void> {
       role: Role.DRIVER,
     },
   });
+  await prisma.user.create({
+    data: {
+      name: 'TEGA Bus Passenger',
+      email: 'passenger@tegabus.com',
+      phone: '+250788000004',
+      password: await hashPw('Passenger123!'),
+      role: Role.PASSENGER,
+    },
+  });
 
   console.log('  ✅ Users created');
 

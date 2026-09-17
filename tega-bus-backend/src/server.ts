@@ -37,7 +37,7 @@ registerTrackingHandlers(io);
 
 const shutdown = async (signal: string): Promise<void> => {
   console.log(`\n⚡ Received ${signal}. Shutting down gracefully...`);
-  fakeGpsService.stopAll();
+  await fakeGpsService.stopAll();
   await prisma.$disconnect();
   server.close(() => {
     console.log('✅ HTTP server closed');

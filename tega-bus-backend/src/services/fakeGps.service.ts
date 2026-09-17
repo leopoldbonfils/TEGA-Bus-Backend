@@ -200,6 +200,7 @@ export interface SimulationState {
 
 class FakeGpsService {
   private simulations = new Map<string, SimulationState>();
+  private activeTicks = new Map<string, Set<Promise<void>>>();
 
   isRunning(busId: string): boolean {
     const sim = this.simulations.get(busId);
@@ -405,7 +406,7 @@ class FakeGpsService {
     );
 
     simState.interval = setInterval(() => {
-      this.tick(busId).catch(console.error);
+      this.runTick(busId);
     }, updateIntervalMs);
 
     this.simulations.set(busId, simState);
@@ -461,7 +462,7 @@ class FakeGpsService {
     );
 
     sim.interval = setInterval(() => {
-      this.tick(busId).catch(console.error);
+      this.runTick(busId);
     }, updateIntervalMs);
 
     console.log(
@@ -485,6 +486,11 @@ class FakeGpsService {
 
     sim.status = 'STOPPED';
     this.simulations.delete(busId);
+
+    const pendingTicks = this.activeTicks.get(busId);
+    if (pendingTicks?.size) {
+      await Promise.allSettled(pendingTicks);
+    }
 
     await prisma.bus
       .update({
@@ -513,7 +519,7 @@ class FakeGpsService {
         (env.FAKE_GPS_INTERVAL || 2000) / sim.speedMultiplier
       );
       sim.interval = setInterval(() => {
-        this.tick(busId).catch(console.error);
+        this.runTick(busId);
       }, updateIntervalMs);
     }
 
@@ -526,10 +532,25 @@ class FakeGpsService {
   /**
    * Stop all running simulations
    */
-  stopAll(): void {
-    for (const [busId] of this.simulations) {
-      this.stop(busId).catch(console.error);
-    }
+  async stopAll(): Promise<void> {
+    await Promise.all([...this.simulations.keys()].map((busId) => this.stop(busId)));
+  }
+
+  private runTick(busId: string): void {
+    const tickPromise = this.tick(busId).catch((error) => {
+      if (this.simulations.has(busId)) {
+        console.error(error);
+      }
+    });
+    const pendingTicks = this.activeTicks.get(busId) || new Set<Promise<void>>();
+    pendingTicks.add(tickPromise);
+    this.activeTicks.set(busId, pendingTicks);
+    void tickPromise.finally(() => {
+      pendingTicks.delete(tickPromise);
+      if (pendingTicks.size === 0) {
+        this.activeTicks.delete(busId);
+      }
+    });
   }
 
   /**
@@ -611,7 +632,7 @@ class FakeGpsService {
     // Persist to DB periodically (every ~5 seconds)
     if (now - sim.lastPersistTime > 4000) {
       sim.lastPersistTime = now;
-      this.persistLocation(sim).catch(() => { });
+      await this.persistLocation(sim);
     }
 
     // Broadcast location over Socket.IO

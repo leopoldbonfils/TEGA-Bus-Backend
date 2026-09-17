@@ -228,7 +228,7 @@ export const stopAllFakeGps = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    fakeGpsService.stopAll();
+    await fakeGpsService.stopAll();
     sendSuccess(res, { message: 'Stopped all running GPS simulations' });
   } catch (err) { next(err); }
 };

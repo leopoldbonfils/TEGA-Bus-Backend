@@ -78,7 +78,7 @@ export const startTrip = async (driverId: string) => {
   socketService.emit('trip:started', { tripId: trip.id, busId: bus.id, routeId: bus.routeId });
 
   if (bus.routeId) {
-    fakeGpsService.start(bus.id, bus.routeId).catch(console.error);
+    await fakeGpsService.start(bus.id, bus.routeId);
   }
 
   return trip;
@@ -117,7 +117,7 @@ export const endTrip = async (tripId: string, driverId: string) => {
     return completedTrip;
   });
 
-  fakeGpsService.stop(trip.busId);
+  await fakeGpsService.stop(trip.busId);
 
   socketService.emit('trip:ended', {
     tripId,
