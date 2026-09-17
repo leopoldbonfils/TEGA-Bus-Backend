@@ -774,7 +774,7 @@ class FakeGpsService {
   /**
    * Sync active simulations & route geometries to a newly connected socket
    */
-  syncToSocket(socket: { emit: (event: string, data: any) => void }): void {
+  async syncToSocket(socket: { emit: (event: string, data: any) => void }): Promise<void> {
     for (const sim of this.simulations.values()) {
       if (sim.status === 'RUNNING' || sim.status === 'PAUSED') {
         const coords = sim.waypoints;
@@ -822,6 +822,49 @@ class FakeGpsService {
           traveledDistanceMeters: sim.traveledDistanceMeters,
         });
       }
+    }
+
+    // Simulations are kept in memory and are empty after a server restart.
+    // Send the latest persisted location so clients can still show active buses.
+    const activeBuses = await prisma.bus.findMany({
+      where: { status: { in: [BusStatus.ACTIVE, BusStatus.ON_TRIP] } },
+      include: {
+        route: true,
+        locations: { orderBy: { timestamp: 'desc' }, take: 1 },
+      },
+    });
+
+    for (const bus of activeBuses) {
+      if (this.simulations.has(bus.id) || !bus.route || bus.locations.length === 0) {
+        continue;
+      }
+
+      const location = bus.locations[0];
+      socket.emit('bus:location', {
+        busId: bus.id,
+        busNumber: bus.busNumber,
+        routeId: bus.route.id,
+        routeNumber: extractRouteNumber(bus.route.name) || bus.busNumber,
+        routeColor: ROUTE_COLORS[extractRouteNumber(bus.route.name) || bus.busNumber] || '#2563EB',
+        latitude: location.latitude,
+        longitude: location.longitude,
+        speed: location.speed || 0,
+        heading: location.heading || 0,
+        currentStop: bus.route.startLocation,
+        nextStop: bus.route.destination,
+        distanceKm: 0,
+        distanceToNextStopKm: 0,
+        etaMinutes: 0,
+        progress: 0,
+        tripProgress: 0,
+        isDestinationReached: false,
+        simulationStatus: bus.status === BusStatus.ON_TRIP ? 'RUNNING' : 'STOPPED',
+        speedMultiplier: 1,
+        timestamp: location.timestamp.toISOString(),
+        sequence: 0,
+        totalDistanceMeters: 0,
+        traveledDistanceMeters: 0,
+      });
     }
   }
 

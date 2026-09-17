@@ -454,7 +454,7 @@ async function main(): Promise<void> {
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('✅ Database seeded successfully!\n');
   console.log('Demo Accounts:');
-  console.log('  👑 ADMIN    — admin@tegabus.com   / Admin123!');
+  console.log('  👑 ADMIN    — leopordbonfils@gmail.com   / 5Rwandan');
   console.log('  🚗 DRIVER 1 — driver@tegabus.com  / Driver123!  (Bus 101 — BLUE)');
   console.log('  🚗 DRIVER 2 — driver2@tegabus.com / Driver123!  (Bus 202 — RED)');
   console.log('  🚗 DRIVER 3 — driver3@tegabus.com / Driver123!  (Bus 203 — GREEN)');

@@ -112,7 +112,7 @@ npm run prisma:seed
 
 | Role       | Email                    | Password      |
 |------------|--------------------------|---------------|
-| ADMIN      | admin@tegabus.com        | Admin123!     |
+| ADMIN      | leopordbonfils@gmail.com | 5Rwandan      |
 | DRIVER 1   | driver@tegabus.com       | Driver123!    |
 | DRIVER 2   | driver2@tegabus.com      | Driver123!    |
 | PASSENGER  | passenger@tegabus.com    | Passenger123! |
