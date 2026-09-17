@@ -11,13 +11,21 @@ type PrismaTx = Omit<
 >;
 
 const TRIP_INCLUDE = {
-  bus: true,
+  bus: {
+    include: {
+      locations: {
+        orderBy: { timestamp: 'desc' as const },
+        take: 1,
+      },
+    },
+  },
   driver: { include: { user: { select: { name: true, email: true } } } },
   route: { include: { stops: { orderBy: { order: 'asc' as const } } } },
 };
 
-export const getAllTrips = async () => {
-  return prisma.trip.findMany({ include: TRIP_INCLUDE, orderBy: { createdAt: 'desc' } });
+export const getAllTrips = async (status?: TripStatus) => {
+  const where = status ? { status } : undefined;
+  return prisma.trip.findMany({ where, include: TRIP_INCLUDE, orderBy: { createdAt: 'desc' } });
 };
 
 export const getTripById = async (id: string) => {

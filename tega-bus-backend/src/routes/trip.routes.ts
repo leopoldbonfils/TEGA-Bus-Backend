@@ -5,14 +5,13 @@ import { authorizeRoles } from '../middleware/role.middleware';
 
 const router = Router();
 
-router.use(authenticate);
-
-// All authenticated
+// Public / Passenger read routes
 router.get('/active', tripController.getActiveTrips);
-router.get('/', authorizeRoles('ADMIN', 'DRIVER'), tripController.getAllTrips);
-router.get('/:id', authorizeRoles('ADMIN', 'DRIVER'), tripController.getTripById);
+router.get('/', tripController.getAllTrips);
+router.get('/:id', tripController.getTripById);
 
-// Driver only
+// Protected routes (Driver only)
+router.use(authenticate);
 router.post('/start', authorizeRoles('DRIVER'), tripController.startTrip);
 router.post('/:id/end', authorizeRoles('DRIVER'), tripController.endTrip);
 

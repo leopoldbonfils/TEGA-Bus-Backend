@@ -1,22 +1,24 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
+import { TripStatus } from '@prisma/client';
 import * as tripService from '../services/trip.service';
 import * as driverService from '../services/driver.service';
 import { sendSuccess, sendCreated } from '../utils/response';
 import { AuthenticatedRequest } from '../types';
 
 export const getAllTrips = async (
-  _req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const trips = await tripService.getAllTrips();
+    const status = req.query['status'] as TripStatus | undefined;
+    const trips = await tripService.getAllTrips(status);
     sendSuccess(res, { trips });
   } catch (err) { next(err); }
 };
 
 export const getTripById = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
@@ -27,7 +29,7 @@ export const getTripById = async (
 };
 
 export const getActiveTrips = async (
-  _req: AuthenticatedRequest,
+  _req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
